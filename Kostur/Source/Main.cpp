@@ -43,6 +43,7 @@ int main()
     SharedGeometry::getInstance();
 
     unsigned int basicShader = createShader("basic.vert", "basic.frag");
+    unsigned int textureShader = createShader("texture.vert", "texture.frag");
 
     AirConditioner* ac = new AirConditioner(window, basicShader);
     glfwSetWindowUserPointer(window, ac);
@@ -54,6 +55,8 @@ int main()
     Pipe* pipe = new Pipe();
     pipe->initBuffers();
 
+    
+
     GLFWcursor* customCursor = loadImageToCursor("Resources/remote-control.png");
     if (customCursor != NULL) {
         glfwSetCursor(window, customCursor);
@@ -61,6 +64,25 @@ int main()
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    unsigned int studentTexture = loadImageToTexture("Resources/student1.png");
+    unsigned int studentVAO, studentVBO;
+    float studentQuad[] = {
+        -0.5f,  0.5f,  0.0f, 1.0f,
+         0.5f,  0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.0f, 0.0f
+    };
+    glGenVertexArrays(1, &studentVAO);
+    glGenBuffers(1, &studentVBO);
+    glBindVertexArray(studentVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, studentVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(studentQuad), studentQuad, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
 
     glClearColor(0.2f, 0.8f, 0.6f, 1.0f);
 
@@ -137,6 +159,22 @@ int main()
 
             ac->render();
 
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            
+            glUseProgram(textureShader);
+            glUniform2f(glGetUniformLocation(textureShader, "uPos"), -0.9f, -0.95f);
+            glUniform2f(glGetUniformLocation(textureShader, "uScale"), 0.25f, 0.15f);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, studentTexture);
+            glUniform1i(glGetUniformLocation(textureShader, "textureSampler"), 0);
+            glBindVertexArray(studentVAO);
+            glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+            glBindVertexArray(0);
+            glUseProgram(0);
+            
+            glDisable(GL_BLEND);
+
             glfwSwapBuffers(window);
         }
 
@@ -148,10 +186,15 @@ int main()
         glfwDestroyCursor(customCursor);
     }
 
+    glDeleteTextures(1, &studentTexture);
+    glDeleteVertexArrays(1, &studentVAO);
+    glDeleteBuffers(1, &studentVBO);
+
     delete ac;
     delete basin;
     delete pipe;
     if (basicShader) glDeleteProgram(basicShader);
+    if (textureShader) glDeleteProgram(textureShader);
     
     SharedGeometry::cleanup();
 
