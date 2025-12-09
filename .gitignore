@@ -22,3 +22,6 @@ publish/
 # Backup files
 *.tmp
 *.bak
+
+packages/
+
